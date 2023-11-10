@@ -23,7 +23,11 @@ abstract class EscposUsbPrinterPlatform extends PlatformInterface {
     _instance = instance;
   }
 
-  Future<String?> getPlatformVersion() {
-    throw UnimplementedError('platformVersion() has not been implemented.');
+  Future<bool?> initService() {
+    throw UnimplementedError('initService() has not been implemented.');
+  }
+
+  Future<String?> getPrinterStatus() {
+    throw UnimplementedError('getPrinterStatus() has not been implemented.');
   }
 }

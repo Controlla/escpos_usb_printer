@@ -10,8 +10,16 @@ class MethodChannelEscposUsbPrinter extends EscposUsbPrinterPlatform {
   final methodChannel = const MethodChannel('escpos_usb_printer');
 
   @override
-  Future<String?> getPlatformVersion() async {
-    final version = await methodChannel.invokeMethod<String>('getPlatformVersion');
-    return version;
+  Future<bool?> initService() async {
+    final bool? isInitialized =
+        await methodChannel.invokeMethod<bool>('initService');
+    return isInitialized;
+  }
+
+  @override
+  Future<String?> getPrinterStatus() async {
+    final String? printerStatus =
+        await methodChannel.invokeMethod<String>('getPrinterStatus');
+    return printerStatus;
   }
 }

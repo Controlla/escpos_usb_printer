@@ -16,25 +16,24 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  String _platformVersion = 'Unknown';
+  bool _initializedService = false;
   final _escposUsbPrinterPlugin = EscposUsbPrinter();
+  String _printerStatus = "Not Initialized";
 
   @override
   void initState() {
     super.initState();
-    initPlatformState();
   }
 
   // Platform messages are asynchronous, so we initialize in an async method.
-  Future<void> initPlatformState() async {
-    String platformVersion;
+  Future<void> initService() async {
+    bool initService;
     // Platform messages may fail, so we use a try/catch PlatformException.
     // We also handle the message potentially returning null.
     try {
-      platformVersion =
-          await _escposUsbPrinterPlugin.getPlatformVersion() ?? 'Unknown platform version';
+      initService = await _escposUsbPrinterPlugin.initService() ?? false;
     } on PlatformException {
-      platformVersion = 'Failed to get platform version.';
+      initService = false;
     }
 
     // If the widget was removed from the tree while the asynchronous platform
@@ -43,7 +42,21 @@ class _MyAppState extends State<MyApp> {
     if (!mounted) return;
 
     setState(() {
-      _platformVersion = platformVersion;
+      _initializedService = initService;
+    });
+  }
+
+  Future<void> getPrinterStatus() async {
+    String printerStatus;
+    try {
+      printerStatus = await _escposUsbPrinterPlugin.getPrinterStatus() ??
+          "Printer not Initialized";
+    } on PlatformException {
+      printerStatus = "Printer not initialized";
+    }
+    if (!mounted) return;
+    setState(() {
+      _printerStatus = printerStatus;
     });
   }
 
@@ -54,8 +67,25 @@ class _MyAppState extends State<MyApp> {
         appBar: AppBar(
           title: const Text('Plugin example app'),
         ),
-        body: Center(
-          child: Text('Running on: $_platformVersion\n'),
+        body: Column(
+          children: [
+            Center(
+              child: Text('Service initialized: $_initializedService\n'),
+            ),
+            ElevatedButton(
+                onPressed: () {
+                  initService();
+                },
+                child: const Text("Initialize Service")),
+            Center(
+              child: Text('Printer Status: $_printerStatus\n'),
+            ),
+            ElevatedButton(
+                onPressed: () {
+                  getPrinterStatus();
+                },
+                child: const Text("Get Printer Status"))
+          ],
         ),
       ),
     );

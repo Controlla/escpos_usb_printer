@@ -1,8 +1,11 @@
-
 import 'escpos_usb_printer_platform_interface.dart';
 
 class EscposUsbPrinter {
-  Future<String?> getPlatformVersion() {
-    return EscposUsbPrinterPlatform.instance.getPlatformVersion();
+  Future<bool?> initService() {
+    return EscposUsbPrinterPlatform.instance.initService();
+  }
+
+  Future<String?> getPrinterStatus() {
+    return EscposUsbPrinterPlatform.instance.getPrinterStatus();
   }
 }

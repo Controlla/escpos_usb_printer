@@ -7,13 +7,16 @@ import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 class MockEscposUsbPrinterPlatform
     with MockPlatformInterfaceMixin
     implements EscposUsbPrinterPlatform {
+  @override
+  Future<bool?> initService() => Future.value(true);
 
   @override
-  Future<String?> getPlatformVersion() => Future.value('42');
+  Future<String?> getPrinterStatus() => Future.value("Ready");
 }
 
 void main() {
-  final EscposUsbPrinterPlatform initialPlatform = EscposUsbPrinterPlatform.instance;
+  final EscposUsbPrinterPlatform initialPlatform =
+      EscposUsbPrinterPlatform.instance;
 
   test('$MethodChannelEscposUsbPrinter is the default instance', () {
     expect(initialPlatform, isInstanceOf<MethodChannelEscposUsbPrinter>());
@@ -24,6 +27,6 @@ void main() {
     MockEscposUsbPrinterPlatform fakePlatform = MockEscposUsbPrinterPlatform();
     EscposUsbPrinterPlatform.instance = fakePlatform;
 
-    expect(await escposUsbPrinterPlugin.getPlatformVersion(), '42');
+    expect(await escposUsbPrinterPlugin.initService(), '42');
   });
 }
