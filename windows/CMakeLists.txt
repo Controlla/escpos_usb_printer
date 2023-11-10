@@ -16,6 +16,13 @@ set(PLUGIN_NAME "escpos_usb_printer_plugin")
 list(APPEND PLUGIN_SOURCES
   "escpos_usb_printer_plugin.cpp"
   "escpos_usb_printer_plugin.h"
+  "utilities.cpp"
+  "utilities.h"
+  "json.hpp"
+  "PosPrinter.h"
+  "PosPrinterDynFuncDefs.h"
+  "PosPrinterEx.h"
+  "PosPrinterUsbHotplug.h"
 )
 
 # Define the plugin library target. Its name must not be changed (see comment
@@ -41,13 +48,27 @@ target_compile_definitions(${PLUGIN_NAME} PRIVATE FLUTTER_PLUGIN_IMPL)
 # Source include directories and library dependencies. Add any plugin-specific
 # dependencies here.
 target_include_directories(${PLUGIN_NAME} INTERFACE
-  "${CMAKE_CURRENT_SOURCE_DIR}/include")
-target_link_libraries(${PLUGIN_NAME} PRIVATE flutter flutter_wrapper_plugin)
+  "${CMAKE_CURRENT_SOURCE_DIR}/include"
+  "${CMAKE_CURRENT_SOURCE_DIR}"
+)
+  
+target_link_libraries(${PLUGIN_NAME} PRIVATE flutter flutter_wrapper_plugin "${CMAKE_CURRENT_SOURCE_DIR}/PosPrinter.lib" "${CMAKE_CURRENT_SOURCE_DIR}/PosPrinterEx.lib")
 
 # List of absolute paths to libraries that should be bundled with the plugin.
 # This list could contain prebuilt libraries, or libraries created by an
 # external build triggered from this build file.
 set(escpos_usb_printer_bundled_libraries
-  ""
+  "${CMAKE_CURRENT_SOURCE_DIR}/PosPrinter.dll"
+  "${CMAKE_CURRENT_SOURCE_DIR}/PosPrinterEx.dll"
   PARENT_SCOPE
+)
+
+add_custom_command(
+  TARGET ${PLUGIN_NAME} POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "${CMAKE_CURRENT_SOURCE_DIR}/PosPrinter.dll"
+    $<TARGET_FILE_DIR:${PLUGIN_NAME}>
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "${CMAKE_CURRENT_SOURCE_DIR}/PosPrinterEx.dll"
+    $<TARGET_FILE_DIR:${PLUGIN_NAME}>
 )
