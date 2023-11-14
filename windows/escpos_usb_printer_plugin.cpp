@@ -36,9 +36,8 @@ std::string ROW_MIDDLE_LINES = "------------------------------------------------
 const int width_quantity = 8;
 const int width_name = 24;
 const int width_price = 16;
-using json = nlohmann::json;
 
-std::string json_data;
+using json = nlohmann::json;
 
 PpUsbPtr m_ppStream = nullptr;  
 
@@ -55,10 +54,9 @@ void write_text_to_printer(const std::string& text) {
     write_to_printer(data);
 }
 
+
 // Funcion para leer los pixeles de una imagen BMP
-std::vector<std::vector<uint32_t>> readBMP(const std::string& file) {
-    std::ifstream input(file, std::ios::binary);
-    std::vector<unsigned char> buffer(std::istreambuf_iterator<char>(input), {});
+std::vector<std::vector<uint32_t>> readBMP(const std::vector<uint8_t>& buffer) {
 
     if (buffer.size() < 54) {
         throw std::runtime_error("Invalid BMP file.");
@@ -82,7 +80,7 @@ std::vector<std::vector<uint32_t>> readBMP(const std::string& file) {
     size_t index = pixelOffset;
     for (int y = height - 1; y >= 0; --y) { // Empieza desde la ultima fila
         for (int x = 0; x < width; ++x) {
-            // Los p�xeles en BMP est�n en orden BGR, y el canal alfa se asume 255
+            // Los p�xeles en BMP estan en orden BGR, y el canal alfa se asume 255
             unsigned char b = buffer[index++];
             unsigned char g = buffer[index++];
             unsigned char r = buffer[index++];
@@ -123,14 +121,14 @@ void print_text_with_centered_last_line(const std::string& text) {
             line += word;
         }
     }
-    lines.push_back(line); // Anadir la ultima lnea despues del bucle
+    lines.push_back(line); // Anadir la ultima linea despues del bucle
 
-    // Imprime todas las l�neas excepto la �ltima
+    // Imprime todas las lineas excepto la ultima
     for (size_t i = 0; i < lines.size() - 1; ++i) {
         write_text_to_printer(lines[i] + "\n");
     }
 
-    // Centra y escribe la �ltima l�nea
+    // Centra y escribe la ultima linea
     std::string last_line = lines.back();
     int space = (48 - (int)last_line.length()) / 2;
     if (space < 0) space = 0; // En caso de que el texto sea mas largo que el ancho
@@ -141,7 +139,7 @@ void print_text_with_centered_last_line(const std::string& text) {
     write_text_to_printer(centered_line + "\n");
 }
 
-void print_json_ticket(const std::string& json_str) {
+bool print_json_ticket(const std::string& json_str) {
     auto json = nlohmann::json::parse(json_str);
 
     std::string branch_info = center_text("Sucursal: " + json["branch"]["name"].get<std::string>()) + "\n\n";
@@ -195,11 +193,12 @@ void print_json_ticket(const std::string& json_str) {
     // Calculamos el ancho que ocupara el precio y el "Total: $" juntos.
     size_t total_length = total_label.length() + price_with_symbol.length();
 
-    // Asegurate de que la linea total, incluyendo el "Total:", el precio y los espacios adicionales, no exceda los 48 caracteres.
+    // Asegurarse de que la linea total, incluyendo el "Total:", el precio y los espacios adicionales, no exceda los 48 caracteres.
     total_stream << std::right << std::setw(48 - total_length) << "" << total_label << price_with_symbol << "\n";
 
     // Finalmente, enviamos la linea del total al impresor.
     write_text_to_printer(total_stream.str());
+    return true;
 }
 
 // Function to determine if a pixel's color should be printed
@@ -241,14 +240,13 @@ void print_image(const std::vector<std::vector<uint32_t>>& pixels) {
     write_to_printer(INIT_PRINTER);
     write_to_printer(SET_LINE_SPACE_24);
 
-    int manualSpaces = 6; // Aqui puedes ajustar la cantidad de espacios en blanco manualmente.
+    int manualSpaces = 6; // Aqui ajustamos la cantidad de espacios en blanco manualmente.
     std::vector<uint8_t> spaces(manualSpaces, 0x20); // Crear un vector con 10 espacios.
 
     for (size_t y = 0; y < pixels.size(); y += 24) {
-        // Enviar espacios en blanco al inicio de cada l�nea.
+        // Enviar espacios en blanco al inicio de cada linea
         write_to_printer(spaces);
-
-        // El resto del codigo permanece igual...
+        
         write_to_printer(SELECT_BIT_IMAGE_MODE);
         uint16_t width = (uint16_t)pixels[y].size();
         write_to_printer({ static_cast<uint8_t>(width & 0xFF), static_cast<uint8_t>((width >> 8) & 0xFF) });
@@ -261,32 +259,35 @@ void print_image(const std::vector<std::vector<uint32_t>>& pixels) {
         write_to_printer(LINE_FEED);
     }
 
-    // Finalizar con el avance de papel si es necesario
+    // Avance de papel
     std::vector<uint8_t> cmd = composeCmdFeedPaper(5);
     m_ppStream->write(reinterpret_cast<char*>(cmd.data()), static_cast<int>(cmd.size()));
 }
 
 
-void loadImageAndPrint() {
+bool loadImageAndPrint(std::vector<uint8_t> imageBytes) {
+
     try {
-        auto pixels = readBMP("logo_bw.bmp");
+        auto pixels = readBMP(imageBytes);
         if (pixels.empty()) {
             std::cerr << "Error: El archivo de pixeles esta vacio o no se pudo leer." << std::endl;
-            return;
+            return false;
         }
         print_image(pixels); // Utiliza la funcion de impresion que definimos previamente
+        return true;
     }
     catch (const std::exception& e) {
         std::cerr << "Excepcion capturada: " << e.what() << std::endl;
+        return false;
     }
 }
 
 bool InitializeUsbService() {
     if (m_ppStream) {
-        PpClose(m_ppStream);  // Esta funcion debe estar definida en alguna parte de tu codigo.
+        PpClose(m_ppStream);  
         m_ppStream = NULL;
     }
-    m_ppStream = PpOpenUsb();  // Suponemos que esta funcion devuelve un puntero.
+    m_ppStream = PpOpenUsb();  // Devuelve puntero
 
     if (m_ppStream) {
         std::cout << "Conexion establecida.\n";
@@ -356,6 +357,20 @@ std::string GetPrinterStatus()
     return statusText;
 }
 
+bool PrintTicket(std::vector<uint8_t> imageBytes, std::string json) {
+    if (loadImageAndPrint(imageBytes) == true) {
+        if (print_json_ticket(json) == true) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+    else {
+        return false;
+    }
+}
+
 namespace escpos_usb_printer {
 
 // static
@@ -391,9 +406,41 @@ void EscposUsbPrinterPlugin::HandleMethodCall(
         std::string functionResult = GetPrinterStatus();
         result->Success(flutter::EncodableValue(functionResult));
     }
-    /*else if (method_call.method_name().compare("printTicket") == 0) {
-        // Tu implementación aquí
-    }*/
+    else if (method_call.method_name().compare("printTicket") == 0) {
+        const auto* args = std::get_if<flutter::EncodableMap>(method_call.arguments());
+        if (!args) {
+            result->Error("InvalidArguments", "Expected map as argument");
+            return;
+        }
+        std::vector<uint8_t> imageBytes;
+        auto imageIt = args->find(flutter::EncodableValue("image"));
+        const auto& imageVariant = imageIt->second;
+        if (std::holds_alternative<std::vector<uint8_t>>(imageVariant)) {
+            imageBytes = std::get<std::vector<uint8_t>>(imageVariant);
+        }
+        else {
+            result->Error("InvalidArguments", "Expected image list of bytes as argument");
+        }
+
+        auto jsonIt = args->find(flutter::EncodableValue("json"));
+        if (jsonIt == args->end() || !std::holds_alternative<std::string>(jsonIt->second)) {
+            result->Error("InvalidArguments", "Expected JSON string as argument");
+            return;
+        }
+
+        const std::string& jsonStr = std::get<std::string>(jsonIt->second);        
+        try {
+            bool success = PrintTicket(imageBytes, jsonStr);
+            result->Success(flutter::EncodableValue(success));
+        }
+        catch (const nlohmann::json::parse_error& e) {
+            std::cerr << "JSON parsing error: " << e.what() << '\n';
+            result->Error("InvalidArguments", "Error parsering the JSON");
+        }
+        catch (const nlohmann::json::type_error& e) {
+            std::cerr << "JSON type error: " << e.what() << '\n';
+        }  
+}
     else {
         result->NotImplemented();
     }

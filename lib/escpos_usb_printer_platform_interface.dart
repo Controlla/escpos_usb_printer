@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import 'escpos_usb_printer_method_channel.dart';
@@ -29,5 +31,9 @@ abstract class EscposUsbPrinterPlatform extends PlatformInterface {
 
   Future<String?> getPrinterStatus() {
     throw UnimplementedError('getPrinterStatus() has not been implemented.');
+  }
+
+  Future<bool?> printTicket(Uint8List imageBytes, Map<String, dynamic> json) {
+    throw UnimplementedError('printTicket() has not been implemented.');
   }
 }

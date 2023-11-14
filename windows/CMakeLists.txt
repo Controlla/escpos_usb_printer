@@ -71,4 +71,7 @@ add_custom_command(
   COMMAND ${CMAKE_COMMAND} -E copy_if_different
     "${CMAKE_CURRENT_SOURCE_DIR}/PosPrinterEx.dll"
     $<TARGET_FILE_DIR:${PLUGIN_NAME}>
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    "${CMAKE_CURRENT_SOURCE_DIR}/logoBw.bmp"
+    $<TARGET_FILE_DIR:${PLUGIN_NAME}>
 )

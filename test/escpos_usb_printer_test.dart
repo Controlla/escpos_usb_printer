@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:escpos_usb_printer/escpos_usb_printer.dart';
 import 'package:escpos_usb_printer/escpos_usb_printer_platform_interface.dart';
@@ -12,6 +14,10 @@ class MockEscposUsbPrinterPlatform
 
   @override
   Future<String?> getPrinterStatus() => Future.value("Ready");
+
+  @override
+  Future<bool?> printTicket(Uint8List imageBytes, Map<String, dynamic> json) =>
+      Future.value(true);
 }
 
 void main() {

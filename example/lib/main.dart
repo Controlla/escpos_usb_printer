@@ -1,3 +1,6 @@
+import 'package:escpos_usb_printer_example/branch_info_model.dart';
+import 'package:escpos_usb_printer_example/products_model.dart';
+import 'package:escpos_usb_printer_example/ticket_model.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 
@@ -16,9 +19,10 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  bool _initializedService = false;
   final _escposUsbPrinterPlugin = EscposUsbPrinter();
+  bool _initializedService = false;
   String _printerStatus = "Not Initialized";
+  bool _isTicketPrinted = false;
 
   @override
   void initState() {
@@ -60,6 +64,35 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
+  Future<void> printTicket() async {
+    TicketModel ticket = const TicketModel(
+        branchInfoModel: BranchInfoModel(
+            address: "Some place in the world", name: "Downtown branch"),
+        order: 10,
+        productsModel: [
+          ProductsModel(price: 10, productName: "Latte", quantity: 2)
+        ],
+        total: 10);
+    final Uint8List imageBytes = await loadImageBytes('assets/logoBw.bmp');
+    bool isTicketPrinted;
+    try {
+      isTicketPrinted = await _escposUsbPrinterPlugin.printTicket(
+              imageBytes, ticket.toJson()) ??
+          false;
+    } on PlatformException {
+      isTicketPrinted = false;
+    }
+    if (!mounted) return;
+    setState(() {
+      _isTicketPrinted = isTicketPrinted;
+    });
+  }
+
+  Future<Uint8List> loadImageBytes(String path) async {
+    final ByteData data = await rootBundle.load(path);
+    return data.buffer.asUint8List();
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -84,7 +117,15 @@ class _MyAppState extends State<MyApp> {
                 onPressed: () {
                   getPrinterStatus();
                 },
-                child: const Text("Get Printer Status"))
+                child: const Text("Get Printer Status")),
+            Center(
+              child: Text('Ticket printed: $_isTicketPrinted\n'),
+            ),
+            ElevatedButton(
+                onPressed: () {
+                  printTicket();
+                },
+                child: const Text("Print Ticket"))
           ],
         ),
       ),

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'escpos_usb_printer_platform_interface.dart';
 
 class EscposUsbPrinter {
@@ -7,5 +9,9 @@ class EscposUsbPrinter {
 
   Future<String?> getPrinterStatus() {
     return EscposUsbPrinterPlatform.instance.getPrinterStatus();
+  }
+
+  Future<bool?> printTicket(Uint8List imageBytes, Map<String, dynamic> json) {
+    return EscposUsbPrinterPlatform.instance.printTicket(imageBytes, json);
   }
 }

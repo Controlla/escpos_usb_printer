@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'dart:convert';
 
 import 'escpos_usb_printer_platform_interface.dart';
 
@@ -21,5 +22,21 @@ class MethodChannelEscposUsbPrinter extends EscposUsbPrinterPlatform {
     final String? printerStatus =
         await methodChannel.invokeMethod<String>('getPrinterStatus');
     return printerStatus;
+  }
+
+  @override
+  Future<bool?> printTicket(
+      Uint8List imageBytes, Map<String, dynamic> json) async {
+    // Convertir el JSON en una cadena
+    final String jsonStr = jsonEncode(json);
+    // Crear un mapa de argumentos para el Method Channel
+    final Map<String, dynamic> args = {
+      'image': imageBytes,
+      'json': jsonStr, // Incluir la cadena JSON
+    };
+
+    final bool? isPrinted =
+        await methodChannel.invokeMethod<bool>('printTicket', args);
+    return isPrinted;
   }
 }
