@@ -21,6 +21,7 @@
 #include "utilities.h"
 #include "PosPrinterEx.h"
 #include "json.hpp"
+#include <unordered_map>
 
 // Define printer commands as constants
 constexpr uint8_t ESC_CHAR = 0x1B;
@@ -30,7 +31,10 @@ std::vector<uint8_t> CUT_PAPER = { GS, 0x56, 0x00 };
 std::vector<uint8_t> INIT_PRINTER = { ESC_CHAR, 0x40 };
 std::vector<uint8_t> SELECT_BIT_IMAGE_MODE = { ESC_CHAR, 0x2A, 33 };
 std::vector<uint8_t> SET_LINE_SPACE_24 = { ESC_CHAR, 0x33, 24 };
+std::vector<uint8_t> SET_SPAIN_CHARSET = { ESC_CHAR, 0x74, 0x02 };
+std::vector<uint8_t> enye = { 0xA4 };
 std::string ROW_MIDDLE_LINES = "------------------------------------------------";//48 carecteres de ancho;
+
 
 //Spacing values for product columns
 const int width_quantity = 8;
@@ -40,6 +44,45 @@ const int width_price = 16;
 using json = nlohmann::json;
 
 PpUsbPtr m_ppStream = nullptr;  
+
+void convertUtf8ToCp437(std::vector<uint8_t>& data) {
+    std::unordered_map<uint8_t, uint8_t> utf8ToCp437Map = {
+        {static_cast<uint8_t>(0xF1), static_cast<uint8_t>(0xA4)},  // ñ
+        {static_cast<uint8_t>(0xD1), static_cast<uint8_t>(0xA5)},  // Ñ
+        {static_cast<uint8_t>(0xE1), static_cast<uint8_t>(0xA0)}, // á
+        {static_cast<uint8_t>(0xC1), static_cast<uint8_t>(0x41)}, // Á
+        {static_cast<uint8_t>(0xE4), static_cast<uint8_t>(0x84)}, // ä
+        {static_cast<uint8_t>(0xC4), static_cast<uint8_t>(0x8E)}, // Ä
+        {static_cast<uint8_t>(0xE9), static_cast<uint8_t>(0x82)}, // é
+        {static_cast<uint8_t>(0xC9), static_cast<uint8_t>(0x90)}, // É
+        {static_cast<uint8_t>(0xEB), static_cast<uint8_t>(0x89)}, // ë
+        {static_cast<uint8_t>(0xCB), static_cast<uint8_t>(0x45)}, // Ë
+        {static_cast<uint8_t>(0xED), static_cast<uint8_t>(0xA1)}, // í 
+        {static_cast<uint8_t>(0xCD), static_cast<uint8_t>(0x49)}, // Í
+        {static_cast<uint8_t>(0xEF), static_cast<uint8_t>(0x8B)}, // ï
+        {static_cast<uint8_t>(0xCF), static_cast<uint8_t>(0x49)}, // Ï
+        {static_cast<uint8_t>(0xF3), static_cast<uint8_t>(0xA2)}, // ó
+        {static_cast<uint8_t>(0xD3), static_cast<uint8_t>(0x4F)}, // Ó
+        {static_cast<uint8_t>(0xF6), static_cast<uint8_t>(0x94)}, // ö
+        {static_cast<uint8_t>(0xD6), static_cast<uint8_t>(0x4F)}, // Ö        
+        {static_cast<uint8_t>(0xFA), static_cast<uint8_t>(0xA3)}, // ú                                
+        {static_cast<uint8_t>(0xDA), static_cast<uint8_t>(0x55)}, // Ú                                
+        {static_cast<uint8_t>(0xFC), static_cast<uint8_t>(0x81)}, // ü                                
+        {static_cast<uint8_t>(0xDC), static_cast<uint8_t>(0x55)}, // Ü                
+    };
+    std::vector<uint8_t> convertedData;
+    for (size_t i = 0; i < data.size(); ++i) {
+        uint8_t currentByte = data[i];
+        auto it = utf8ToCp437Map.find(currentByte);
+        if (it != utf8ToCp437Map.end()) {
+            convertedData.push_back(it->second);
+        }
+        else {
+            convertedData.push_back(currentByte);
+        }
+    }
+    data = std::move(convertedData);
+}
 
 //Mandar comandos a la impresora
 void write_to_printer(const std::vector<uint8_t>& data) {
@@ -51,6 +94,7 @@ void write_to_printer(const std::vector<uint8_t>& data) {
 //Convertir string a uint8 y mandar comando
 void write_text_to_printer(const std::string& text) {
     std::vector<uint8_t> data(text.begin(), text.end());
+    convertUtf8ToCp437(data);
     write_to_printer(data);
 }
 
@@ -145,7 +189,7 @@ bool print_json_ticket(const std::string& json_str) {
     std::string branch_info = center_text("Sucursal: " + json["branch"]["name"].get<std::string>()) + "\n\n";
     write_text_to_printer(branch_info);
 
-    print_text_with_centered_last_line("Address: " + json["branch"]["address"].get<std::string>());
+    print_text_with_centered_last_line("Dirección: " + json["branch"]["address"].get<std::string>());
 
     // Print Order Number
     std::string order_number = "\n\nOrden: #" + std::to_string(json["order"].get<int>()) + "\n\n";
@@ -198,6 +242,14 @@ bool print_json_ticket(const std::string& json_str) {
 
     // Finalmente, enviamos la linea del total al impresor.
     write_text_to_printer(total_stream.str());
+
+    std::vector<uint8_t> cmdFeedPaper = composeCmdFeedPaper(15);
+    write_to_printer(cmdFeedPaper);
+
+    std::vector<uint8_t> cmdCut = composeCmdCut(1);    
+
+    write_to_printer(cmdCut);
+
     return true;
 }
 
@@ -291,12 +343,8 @@ bool InitializeUsbService() {
 
     if (m_ppStream) {
         std::cout << "Conexion establecida.\n";
-        // Selecciona el conjunto de caracteres de Espana
-        const char ESC = 27;
-        const unsigned char spain_char_set = 13; // Caracteres internacionales de Espana
-
-        std::string set_international_char_command = { ESC, 'R', spain_char_set };
-        write_text_to_printer(set_international_char_command);
+                
+        write_to_printer(SET_SPAIN_CHARSET);
         return true;
     }
     else {
