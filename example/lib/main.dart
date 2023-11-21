@@ -70,7 +70,8 @@ class _MyAppState extends State<MyApp> {
             address: "Some place in the world", name: "Downtown branch"),
         order: 10,
         productsModel: [
-          ProductsModel(price: 10, productName: "Latte", quantity: 2)
+          ProductsModel(price: 20, productName: "Café Américano", quantity: 2),
+          ProductsModel(price: 10, productName: "Cafrísimo", quantity: 1)
         ],
         total: 10);
     final Uint8List imageBytes = await loadImageBytes('assets/logoBw.bmp');

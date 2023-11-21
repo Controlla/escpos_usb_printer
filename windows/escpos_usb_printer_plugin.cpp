@@ -45,40 +45,57 @@ using json = nlohmann::json;
 
 PpUsbPtr m_ppStream = nullptr;  
 
+bool isStartOfSequenceMultibyte(uint8_t byte) {
+    // Verify if the 2 higher bits are equal to 11.
+    return (byte & 0xC0) == 0xC0;
+}
+
+struct PairHash {
+    size_t operator()(const std::pair<uint8_t, uint8_t>& p) const {
+        return std::hash<uint8_t>()(p.first) ^ std::hash<uint8_t>()(p.second);
+    }
+};
+
 void convertUtf8ToCp437(std::vector<uint8_t>& data) {
-    std::unordered_map<uint8_t, uint8_t> utf8ToCp437Map = {
-        {static_cast<uint8_t>(0xF1), static_cast<uint8_t>(0xA4)},  // ñ
-        {static_cast<uint8_t>(0xD1), static_cast<uint8_t>(0xA5)},  // Ñ
-        {static_cast<uint8_t>(0xE1), static_cast<uint8_t>(0xA0)}, // á
-        {static_cast<uint8_t>(0xC1), static_cast<uint8_t>(0x41)}, // Á
-        {static_cast<uint8_t>(0xE4), static_cast<uint8_t>(0x84)}, // ä
-        {static_cast<uint8_t>(0xC4), static_cast<uint8_t>(0x8E)}, // Ä
-        {static_cast<uint8_t>(0xE9), static_cast<uint8_t>(0x82)}, // é
-        {static_cast<uint8_t>(0xC9), static_cast<uint8_t>(0x90)}, // É
-        {static_cast<uint8_t>(0xEB), static_cast<uint8_t>(0x89)}, // ë
-        {static_cast<uint8_t>(0xCB), static_cast<uint8_t>(0x45)}, // Ë
-        {static_cast<uint8_t>(0xED), static_cast<uint8_t>(0xA1)}, // í 
-        {static_cast<uint8_t>(0xCD), static_cast<uint8_t>(0x49)}, // Í
-        {static_cast<uint8_t>(0xEF), static_cast<uint8_t>(0x8B)}, // ï
-        {static_cast<uint8_t>(0xCF), static_cast<uint8_t>(0x49)}, // Ï
-        {static_cast<uint8_t>(0xF3), static_cast<uint8_t>(0xA2)}, // ó
-        {static_cast<uint8_t>(0xD3), static_cast<uint8_t>(0x4F)}, // Ó
-        {static_cast<uint8_t>(0xF6), static_cast<uint8_t>(0x94)}, // ö
-        {static_cast<uint8_t>(0xD6), static_cast<uint8_t>(0x4F)}, // Ö        
-        {static_cast<uint8_t>(0xFA), static_cast<uint8_t>(0xA3)}, // ú                                
-        {static_cast<uint8_t>(0xDA), static_cast<uint8_t>(0x55)}, // Ú                                
-        {static_cast<uint8_t>(0xFC), static_cast<uint8_t>(0x81)}, // ü                                
-        {static_cast<uint8_t>(0xDC), static_cast<uint8_t>(0x55)}, // Ü                
+    std::unordered_map<std::pair<uint8_t, uint8_t>, uint8_t, PairHash> utf8ToCp437Map = {
+        {{static_cast<uint8_t>(0xC3), static_cast<uint8_t>(0xB1)}, static_cast<uint8_t>(0xA4)}, // ñ
+        {{static_cast<uint8_t>(0xC3), static_cast<uint8_t>(0x91)}, static_cast<uint8_t>(0xA5)}, // Ñ
+        {{static_cast<uint8_t>(0xC3), static_cast<uint8_t>(0xA1)}, static_cast<uint8_t>(0xA0)}, // á
+        {{static_cast<uint8_t>(0xC3), static_cast<uint8_t>(0x81)}, static_cast<uint8_t>(0x41)}, // Á
+        {{static_cast<uint8_t>(0xC3), static_cast<uint8_t>(0xA4)}, static_cast<uint8_t>(0x84)}, // ä
+        {{static_cast<uint8_t>(0xC3), static_cast<uint8_t>(0x84)}, static_cast<uint8_t>(0x8E)}, // Ä
+        {{static_cast<uint8_t>(0xC3), static_cast<uint8_t>(0xA9)}, static_cast<uint8_t>(0x82)}, // é
+        {{static_cast<uint8_t>(0xC3), static_cast<uint8_t>(0x89)}, static_cast<uint8_t>(0x90)}, // É
+        {{static_cast<uint8_t>(0xC3), static_cast<uint8_t>(0xAB)}, static_cast<uint8_t>(0x89)}, // ë
+        {{static_cast<uint8_t>(0xC3), static_cast<uint8_t>(0x8B)}, static_cast<uint8_t>(0x45)}, // Ë
+        {{static_cast<uint8_t>(0xC3), static_cast<uint8_t>(0xAD)}, static_cast<uint8_t>(0xA1)}, // í 
+        {{static_cast<uint8_t>(0xC3), static_cast<uint8_t>(0x8D)}, static_cast<uint8_t>(0x49)}, // Í
+        {{static_cast<uint8_t>(0xC3), static_cast<uint8_t>(0xAF)}, static_cast<uint8_t>(0x8B)}, // ï
+        {{static_cast<uint8_t>(0xC3), static_cast<uint8_t>(0x8F)}, static_cast<uint8_t>(0x49)}, // Ï
+        {{static_cast<uint8_t>(0xC3), static_cast<uint8_t>(0xB3)}, static_cast<uint8_t>(0xA2)}, // ó
+        {{static_cast<uint8_t>(0xC3), static_cast<uint8_t>(0x93)}, static_cast<uint8_t>(0x4F)}, // Ó
+        {{static_cast<uint8_t>(0xC3), static_cast<uint8_t>(0xB6)}, static_cast<uint8_t>(0x94)}, // ö
+        {{static_cast<uint8_t>(0xC3), static_cast<uint8_t>(0x96)}, static_cast<uint8_t>(0x4F)}, // Ö        
+        {{static_cast<uint8_t>(0xC3), static_cast<uint8_t>(0xBA)}, static_cast<uint8_t>(0xA3)}, // ú                                
+        {{static_cast<uint8_t>(0xC3), static_cast<uint8_t>(0x9A)}, static_cast<uint8_t>(0x55)}, // Ú                                
+        {{static_cast<uint8_t>(0xC3), static_cast<uint8_t>(0xBC)}, static_cast<uint8_t>(0x81)}, // ü                                
+        {{static_cast<uint8_t>(0xC3), static_cast<uint8_t>(0x9C)}, static_cast<uint8_t>(0x55)}, // Ü                
     };
     std::vector<uint8_t> convertedData;
     for (size_t i = 0; i < data.size(); ++i) {
-        uint8_t currentByte = data[i];
-        auto it = utf8ToCp437Map.find(currentByte);
-        if (it != utf8ToCp437Map.end()) {
-            convertedData.push_back(it->second);
+        if (isStartOfSequenceMultibyte(data[i])) {
+            // manage multibyte sequence
+            auto it = utf8ToCp437Map.find({ data[i], data[i + 1] });
+            if (it != utf8ToCp437Map.end()) {
+                convertedData.push_back(it->second);
+                i++; // Head to the second byte in the sequence
+            }
+            else {
+                i++;
+            }
         }
         else {
-            convertedData.push_back(currentByte);
+            convertedData.push_back(data[i]);
         }
     }
     data = std::move(convertedData);
@@ -183,13 +200,23 @@ void print_text_with_centered_last_line(const std::string& text) {
     write_text_to_printer(centered_line + "\n");
 }
 
+int countCharacters(const std::string& text) {
+    int count = 0;
+    for (size_t i = 0; i < text.length(); ++i) {
+        if ((text[i] & 0xC0) != 0x80) {
+            count++;
+        }
+    }
+    return count;
+}
+
 bool print_json_ticket(const std::string& json_str) {
     auto json = nlohmann::json::parse(json_str);
 
     std::string branch_info = center_text("Sucursal: " + json["branch"]["name"].get<std::string>()) + "\n\n";
     write_text_to_printer(branch_info);
 
-    print_text_with_centered_last_line("Dirección: " + json["branch"]["address"].get<std::string>());
+    print_text_with_centered_last_line("Direcci\xC3\xB3n: " + json["branch"]["address"].get<std::string>());
 
     // Print Order Number
     std::string order_number = "\n\nOrden: #" + std::to_string(json["order"].get<int>()) + "\n\n";
@@ -201,11 +228,17 @@ bool print_json_ticket(const std::string& json_str) {
 
     // Print Products
     for (const auto& product : json["products"]) {
-        std::ostringstream line_stream;
+    std::ostringstream line_stream;
 
-        // Ajustamos el nombre del producto y la cantidad a la izquierda
-        line_stream << std::left << std::setw(width_name) << product["product_name"].get<std::string>()
-            << std::left << std::setw(width_quantity) << product["quantity"].get<int>();
+
+    std::string productName = product["product_name"].get<std::string>();
+    int realLengthProductName = countCharacters(productName);
+
+    int widthAdjustment = width_name - (realLengthProductName - static_cast<int>(productName.length()));
+    int adjustedWidthName = (std::max)(widthAdjustment, 0);
+
+    line_stream << std::left << std::setw(adjustedWidthName) << productName
+                << std::left << std::setw(width_quantity) << product["quantity"].get<int>();
 
         // Creamos un nuevo stringstream para el precio con el signo $
         std::ostringstream price_stream;
