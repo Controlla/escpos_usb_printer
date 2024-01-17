@@ -1,6 +1,6 @@
 name: escpos_usb_printer
 description: A new Flutter plugin project.
-version: 0.0.3
+version: 1.0.3
 homepage:
 
 environment:
