@@ -27,16 +27,21 @@ class MethodChannelEscposUsbPrinter extends EscposUsbPrinterPlatform {
   @override
   Future<bool?> printTicket(
       Uint8List imageBytes, Map<String, dynamic> json) async {
-    // Convertir el JSON en una cadena
-    final String jsonStr = jsonEncode(json);
-    // Crear un mapa de argumentos para el Method Channel
-    final Map<String, dynamic> args = {
-      'image': imageBytes,
-      'json': jsonStr, // Incluir la cadena JSON
-    };
+    try {
+      // Convertir el JSON en una cadena
+      final String jsonStr = jsonEncode(json);
+      // Crear un mapa de argumentos para el Method Channel
+      final Map<String, dynamic> args = {
+        'image': imageBytes,
+        'json': jsonStr, // Incluir la cadena JSON
+      };
 
-    final bool? isPrinted =
-        await methodChannel.invokeMethod<bool>('printTicket', args);
-    return isPrinted;
+      final bool? isPrinted =
+          await methodChannel.invokeMethod<bool>('printTicket', args);
+      return isPrinted;
+    } on PlatformException catch (error) {
+      debugPrint('Printer Error: ${error.message}');
+      return false;
+    }
   }
 }
