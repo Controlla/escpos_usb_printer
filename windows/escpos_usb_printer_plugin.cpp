@@ -218,8 +218,16 @@ bool print_json_ticket(const std::string& json_str) {
 
     print_text_with_centered_last_line("Direcci\xC3\xB3n: " + json["branch"]["address"].get<std::string>());
 
+
     // Print Order Number
-    std::string order_number = "\n\nOrden: #" + std::to_string(json["order"].get<int>()) + "\n\n";
+    std::string order_number;
+    if (json["is_offline"].get<bool>()) {
+        // if is_offline is true the field is called Folio
+        order_number = "\n\nFolio: #" + std::to_string(json["order"].get<int>()) + "\n\n";
+    } else {
+        // if is_offline is false the field is called Orden
+        order_number = "\n\nOrden: #" + std::to_string(json["order"].get<int>()) + "\n\n";
+    }
     write_text_to_printer(order_number);
 
     write_text_to_printer(ROW_MIDDLE_LINES);

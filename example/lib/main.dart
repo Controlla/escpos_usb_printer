@@ -73,7 +73,8 @@ class _MyAppState extends State<MyApp> {
           ProductsModel(price: 20, productName: "Café Américano", quantity: 2),
           ProductsModel(price: 10, productName: "Cafrísimo", quantity: 1)
         ],
-        total: 10);
+        total: 10,
+        isOffline: false);
     final Uint8List imageBytes = await loadImageBytes('assets/logoBw.bmp');
     bool isTicketPrinted;
     try {

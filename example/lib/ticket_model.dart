@@ -19,15 +19,21 @@ class TicketModel {
   @override
   @JsonKey(name: "total")
   final double total;
+
   @override
   @JsonKey(name: "order")
   final int order;
+
+  @override
+  @JsonKey(name: "is_offline")
+  final bool isOffline;
 
   const TicketModel(
       {required this.branchInfoModel,
       required this.order,
       required this.productsModel,
-      required this.total});
+      required this.total,
+      required this.isOffline});
 
   factory TicketModel.fromJson(Map<String, dynamic> json) =>
       _$TicketModelFromJson(json);

@@ -14,6 +14,7 @@ TicketModel _$TicketModelFromJson(Map<String, dynamic> json) => TicketModel(
           .map((e) => ProductsModel.fromJson(e as Map<String, dynamic>))
           .toList(),
       total: (json['total'] as num).toDouble(),
+      isOffline: json['is_offline'] as bool,
     );
 
 Map<String, dynamic> _$TicketModelToJson(TicketModel instance) =>
@@ -22,4 +23,5 @@ Map<String, dynamic> _$TicketModelToJson(TicketModel instance) =>
       'products': instance.productsModel.map((e) => e.toJson()).toList(),
       'total': instance.total,
       'order': instance.order,
+      'is_offline': instance.isOffline,
     };
